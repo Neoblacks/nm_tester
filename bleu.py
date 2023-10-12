@@ -3,25 +3,26 @@ import subprocess
 import time
 import os
 import simple_term_menu
+import re
+
+# NORME
+			# print("\033[93mChecking norme please wait\033[0m\n")
+			# time.sleep(0.5)
+			# result = subprocess.run(["norminette"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+			# norme_check = result.stdout
+			# lines = norme_check.split("\n")
+			# no_errors = True
+			# for i in range(len(lines)):
+			# 	if "Error" in lines[i]:
+			# 		print(lines[i])
+			# 		no_errors = False
+			# 		time.sleep(0.04)
+			# if no_errors != False:
+			# 	print("Norme \033[32m\033[4mOK\033[0m")
+			# print("\n\033[93mChecking forbidden functions please wait\033[0m\n")
+			# time.sleep(0.5)
 
 def	libft_partA(functions_to_check, function_check_B, part):
-	print("\033[1m\033[4mPartie 1\033[0m\n")
-	print("\033[93mChecking norme please wait\033[0m\n")
-	time.sleep(0.5)
-	result = subprocess.run(["norminette"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-	norme_check = result.stdout
-	#if line start with "Error" print the line and the next one
-	lines = norme_check.split("\n")
-	no_errors = True
-	for i in range(len(lines)):
-		if "Error" in lines[i]:
-			print(lines[i])
-			no_errors = False
-			time.sleep(0.04)
-	if no_errors != False:
-		print("Norme \033[32m\033[4mOK\033[0m")
-	print("\n\033[93mChecking forbidden functions please wait\033[0m\n")
-	time.sleep(0.5)
 	output = subprocess.check_output(["nm", "libft.a"]).decode("utf-8")
 	lines = output.split("\n")
 
@@ -45,9 +46,13 @@ def	libft_partA(functions_to_check, function_check_B, part):
 
 	unauthorized_functions = {}
 
+
 	if part == 1:
+		print("\033[1m\033[4mPartie A\033[0m\n")
 		for i in functions_in_library:
 			unauthorized_functions[i] = []
+			if functions_in_library[i] == []:
+				continue
 			for j in functions_in_library[i]:
 				if j.startswith("U") and "ft_" not in j:
 					unauthorized_functions[i].append(j)
@@ -62,6 +67,8 @@ def	libft_partA(functions_to_check, function_check_B, part):
 
 		for i in functions_in_library_a:
 			unauthorized_functions_a[i] = []
+			if functions_in_library_a[i] == []:
+				continue
 			for j in functions_in_library_a[i]:
 				if j.startswith("U") and "ft_" not in j and "malloc" not in j:
 					unauthorized_functions_a[i].append(j)
@@ -71,12 +78,36 @@ def	libft_partA(functions_to_check, function_check_B, part):
 			else:
 				print(f"Fichier {i}.c \033[32m\033[4mOK\033[0m")
 			time.sleep(0.04)
+	elif part == 2:
+		print("\n\033[1m\033[4mPartie B\033[0m\n")
+		time.sleep(0.5)
+		malloc_authorized = ["ft_substr", "ft_strjoin", "ft_strtrim", "ft_itoa", "ft_strmapi"]
+		free_and_malloc_authorized = ["ft_split"]
+		write_authorized = ["ft_putchar_fd", "ft_putstr_fd", "ft_putendl_fd", "ft_putnbr_fd"]
+		for i in functions_in_library:
+			unauthorized_functions[i] = []
+			if functions_in_library[i] == []:
+				continue
+			for j in functions_in_library[i]:
+				if i in malloc_authorized:
+					if j.startswith("U") and "ft_" not in j and "malloc" not in j:
+						unauthorized_functions[i].append(j)
+				elif i in free_and_malloc_authorized:
+					if j.startswith("U") and "ft_" not in j and "free" not in j and "malloc" not in j:
+						unauthorized_functions[i].append(j)
+				elif i in write_authorized:
+					if j.startswith("U") and "ft_" not in j and "write" not in j:
+						unauthorized_functions[i].append(j)
+			if len(unauthorized_functions[i]) > 0:
+				for j in unauthorized_functions[i]:
+					print(f"\n\033[93m{i} utilise la fonction externe {j}\033[0m\n")
+			else:
+				print(f"Fichier {i}.c \033[32m\033[4mOK\033[0m")
+			time.sleep(0.04)
 	return
 
-def	libft_partB():
+def	libft_partB(functions_to_check):
 	print("\n\033[1m\033[4mPartie 2\033[0m\n")
-	#Print Work in progress
-	print("\033[93mWork in progress\033[0m\n")
 	return
 
 def	libft():
@@ -94,8 +125,14 @@ def	libft():
 		]
 		function_check_B = ["ft_calloc", "ft_strdup"]
 		libft_partA(functions_to_check, function_check_B, 1)
+		functions_to_check = [
+		"ft_substr", "ft_strjoin", "ft_strtrim", "ft_itoa", "ft_strmapi", "ft_split",
+		"ft_putchar_fd", "ft_putstr_fd", "ft_putendl_fd", "ft_putnbr_fd",
+		]
+		function_check_B = []
+		libft_partA(functions_to_check, function_check_B, 2)
 	elif choice == 1:
-		libft_partB()
+		print("bonus")
 	elif choice == 2:
 		os.system("clear")
 
@@ -134,14 +171,69 @@ def	printf():
 			print(f"Fichier {i}.o \033[32m\033[4mOK\033[0m")
 		time.sleep(0.04)
 
+
+def	philosophers():
+	function_h = os.popen("cat philo.h | grep \"(\" | cut -f 2-4 | sed 's/([^)]*)//;s/;$//'").read()
+	function_h = function_h.split("\n")
+	for i in range(len(function_h)):
+		function_h[i] = function_h[i].strip()
+	function_h = list(filter(None, function_h))
+	for i in range(len(function_h)):
+		if function_h[i] == "":
+			del function_h[i]
+		else:
+			function_h[i] = function_h[i].split("*")[0]
+			function_h[i] = function_h[i].split("(")[0]
+	function_h = list(filter(None, function_h))
+
+	output = subprocess.check_output(["nm", "philo"]).decode("utf-8")
+	lines = output.split("\n")
+
+	authorized_functions = [
+		"memset", "printf", "malloc", "free", "write",
+		"usleep", "gettimeofday", "pthread_create",
+		"pthread_detach", "pthread_join", "pthread_mutex_init",
+		"pthread_mutex_destroy", "pthread_mutex_lock",
+		"pthread_mutex_unlock"
+	]
+
+	function_names = []
+	for line in lines:
+		line = line.strip()
+		if line.startswith("U"):
+			function_names.append(line[2:])
+	#remove all characters after the @
+	for i in range(len(function_names)):
+		function_names[i] = function_names[i].split("@")[0]
+	#remove function starting with __
+	for i in function_names:
+		if i.startswith("__"):
+			function_names.remove(i)
+
+	# time.sleep(10)
+
+	unauthorized_functions = []
+
+	for i in function_names:
+		if i not in authorized_functions and i not in function_h:
+			unauthorized_functions.append(i)
+
+	unauthorized_functions = list(filter(None, unauthorized_functions))
+	if len(unauthorized_functions) > 0:
+		for i in unauthorized_functions:
+			print(f"\n\033[93m{i} n'est pas autorisé\033[0m\n")
+	else:
+		print("\033[32m\033[4mOK\033[0m")
+
 def	main():
-	option = ["Libft", "Gnl", "Printf", "Exit"]
+	option = ["Libft", "Philosophers", "Printf", "Exit"]
 	terminal = simple_term_menu.TerminalMenu(option)
 	choice = terminal.show()
 	if choice == 0:
 		libft()
 	elif choice == 1:
-		print("gnl")
+		# print("philosophers")
+		philosophers()
 	elif choice == 2:
 		printf()
 	elif choice == 3:
